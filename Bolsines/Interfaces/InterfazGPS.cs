@@ -13,12 +13,14 @@ namespace Bolsines.Interfaces
             int numeroBolsin,
             (double latitud, double longitud) ubicacion,
             DateTime fechaHoraUbicacion
-        )> localizacionesAdaptadas;
-        private IAdaptadorGPS adaptadorGPS;
+        )> localizacionBolsinesAdaptada;
+        private List<int> numeroBolsin;
+        private string codigoCMOrigen;
+        private string codigosCMDestino;
 
         // Constructor
 
-        // public InterfazGPS(IAdaptadorGPS adaptadorGPS)
+        // public InterfazGPS(IAdaptadorGPSTracker adaptadorGPS)
         // {
         //     this.apiKeyGPSTrackers = DatosPrueba.getAPIKeyGPST
         //     this.adaptadorGPS = adaptadorGPS;
@@ -35,7 +37,7 @@ namespace Bolsines.Interfaces
             int numeroBolsin,
             (double latitud, double longitud) ubicacion,
             DateTime fechaHoraUbicacion
-        )> obtenerLocalizacionBolsines(
+        )> getBolsinLocation(
             List<(
                 Bolsin bolsin,
                 int numero
@@ -43,14 +45,14 @@ namespace Bolsines.Interfaces
             string codigoCMOrigen
         )
         {
-            this.adaptadorGPS = new AdaptadorXTR4500L(
+            IAdaptadorGPSTracker adaptadorGPSTracker = new AdaptadorGPSTrackerXTR4500L(
                 this.apiKeyGPSTrackers[0],
                 bolsinesEnviados,
                 codigoCMOrigen
             );
-            this.localizacionesAdaptadas = this.adaptadorGPS.recibirLocalizaciones();
+            this.localizacionBolsinesAdaptada = adaptadorGPSTracker.recibirUbicacionBolsin();
 
-            return this.localizacionesAdaptadas;
+            return this.localizacionBolsinesAdaptada;
         }
     }
 }

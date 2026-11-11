@@ -1,4 +1,4 @@
-﻿using Bolsines.Entidades;
+using Bolsines.Entidades;
 using Bolsines.Interfaces.Dispositivos;
 using Bolsines.Interfaces.Sistemas_Externos;
 
@@ -298,15 +298,15 @@ namespace Bolsines.Datos_Prueba
             return apiKeyGPSTrackers;
         }
 
-        // Objetos :GPSXTR4500L
-        public static readonly GPSXTR4500L gpsXTR4500L1 = new GPSXTR4500L(1);
+        // Objetos :ServicioGPSTrackerXTR4500L
+        public static readonly ServicioGPSTrackerXTR4500L gpsXTR4500L1 = new ServicioGPSTrackerXTR4500L(1);
 
-        public static readonly GPSXTR4500L gpsXTR4500L2 = new GPSXTR4500L(4);
+        public static readonly ServicioGPSTrackerXTR4500L gpsXTR4500L2 = new ServicioGPSTrackerXTR4500L(4);
 
         // Objetos GPS que conocen los adaptadores que les corresponde
-        public static List<GPSXTR4500L> cargarGPSsXTR4500L()
+        public static List<ServicioGPSTrackerXTR4500L> cargarGPSsXTR4500L()
         {
-            List<GPSXTR4500L> listaGPSs = new List<GPSXTR4500L>();
+            List<ServicioGPSTrackerXTR4500L> listaGPSs = new List<ServicioGPSTrackerXTR4500L>();
             listaGPSs.Add(gpsXTR4500L1);
             listaGPSs.Add(gpsXTR4500L2);
             return listaGPSs;

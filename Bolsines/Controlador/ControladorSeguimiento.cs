@@ -1,4 +1,4 @@
-﻿using Bolsines.Datos_Prueba;
+using Bolsines.Datos_Prueba;
 using Bolsines.Entidades;
 using Bolsines.Interfaces;
 // using Bolsines.Interfaces.Patron_Adaptador;
@@ -62,7 +62,7 @@ namespace Bolsines.Controlador
             this.buscarCMUsuarioLogueado();
             this.obtenerBolsinesEnviados();
             this.buscarLocalizacionBolsines();
-            this.mostrarLocalizacionBolsines();
+            this.mostrarUbicacionEnMapa();
             pantallaSeguimiento.pedirSeleccionBolsin(this.localizacionBolsines);
         }
 
@@ -101,18 +101,18 @@ namespace Bolsines.Controlador
             // Habría que pasarle datos que no están definidos como atributos en el controlador.
             // Preguntar si está bien aplicado el patrón Adapter de la manera que ya había hecho.
             //
-            // IAdaptadorGPS adaptadorGPS = new AdaptadorXTR4500L(...);
+            // IAdaptadorGPSTracker adaptadorGPS = new AdaptadorGPSTrackerXTR4500L(...);
             //
             // this.interfazGPS = new InterfazGPS(adaptadorGPS);
 
             this.interfazGPS = new InterfazGPS();
-            this.localizacionBolsines = this.interfazGPS.obtenerLocalizacionBolsines(
+            this.localizacionBolsines = this.interfazGPS.getBolsinLocation(
                 this.bolsinesEnviados,
                 this.cmUsuarioLogueado.codigo
             );
         }
 
-        public void mostrarLocalizacionBolsines()
+        public void mostrarUbicacionEnMapa()
         {
             this.interfazGoogleMaps = new InterfazGoogleMaps();
             this.interfazGoogleMaps.mostrarBolsinesEnMapa(this.localizacionBolsines);

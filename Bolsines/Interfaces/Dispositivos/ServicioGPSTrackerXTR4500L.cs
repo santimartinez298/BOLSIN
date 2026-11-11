@@ -1,15 +1,15 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Bolsines.Utilidades;
 
 namespace Bolsines.Interfaces.Dispositivos
 {
-    public class GPSXTR4500L
+    public class ServicioGPSTrackerXTR4500L
     {
         // Atributos (no van en el diagrama de clases)
         private int numeroBolsin;
 
         // Constructor (no va en el diagrama de clases)
-        public GPSXTR4500L(int numeroBolsin)
+        public ServicioGPSTrackerXTR4500L(int numeroBolsin)
         {
             this.numeroBolsin = numeroBolsin;
         }
@@ -57,3 +57,4 @@ namespace Bolsines.Interfaces.Dispositivos
         }
     }
 }
+
