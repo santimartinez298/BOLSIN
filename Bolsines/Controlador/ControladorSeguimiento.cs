@@ -1,8 +1,8 @@
-using Bolsines.Datos_Prueba;
 using Bolsines.Entidades;
 using Bolsines.Interfaces;
 // using Bolsines.Interfaces.Patron_Adaptador;
 using Bolsines.Interfaces.Pantallas;
+using Bolsines.Persistencia;
 using Microsoft.AspNetCore.Components;
 
 namespace Bolsines.Controlador
@@ -42,6 +42,7 @@ namespace Bolsines.Controlador
         private List<Bolsin> bolsines;
         private InterfazGPS interfazGPS;
         private InterfazGoogleMaps interfazGoogleMaps;
+        private RepositorioBolsines repositorio;
 
         // Constructor
         public ControladorSeguimiento(
@@ -49,10 +50,15 @@ namespace Bolsines.Controlador
             NavigationManager navigationManager
         )
         {
-            this.sesionActual = DatosPrueba.cargarSesionActual();
+            // Persistencia: los objetos se recuperan de la base de datos.
+            // Se usa UNA sola instancia del repositorio para que los objetos
+            // compartidos (Usuario, ComisionMedica, etc.) sean las mismas
+            // instancias y funcionen las comparaciones de las entidades.
+            this.repositorio = new RepositorioBolsines();
+            this.sesionActual = this.repositorio.cargarSesionActual();
             this.pantallaSeguimiento = pantallaSeguimiento;
-            this.empleados = DatosPrueba.cargarEmpleados();
-            this.bolsines = DatosPrueba.cargarBolsines();
+            this.empleados = this.repositorio.cargarEmpleados();
+            this.bolsines = this.repositorio.cargarBolsines();
             this.navigationManager = navigationManager;
         }
 

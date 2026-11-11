@@ -1,0 +1,14 @@
+# Compilación
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+
+# Base de datos SQLite (se genera sola al ejecutar)
+*.db
+*.db-shm
+*.db-wal
+
+API GPS/

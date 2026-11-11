@@ -10,6 +10,7 @@
   <ItemGroup>
     <!-- <PackageReference Include="BlazorGoogleMaps" Version="4.16.0" /> -->
 	<PackageReference Include="MudBlazor" Version="9.7.0" />
+	<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0" />
   </ItemGroup>
 
 </Project>

@@ -1,60 +1,68 @@
-using System.Globalization;
-using Bolsines.Utilidades;
-
 namespace Bolsines.Interfaces.Dispositivos
 {
+    // ---------------------------------------------------------------------
+    // ADAPTEE del patrón Adapter: GPS Tracker modelo XTR-4500L.
+    //
+    // Ya no simula la ubicación: la pide a la API provista por la cátedra
+    // (repositorio dsi-api-bolsines), que debe estar corriendo en
+    // http://localhost:8080.
+    //
+    // Interfaz propia del dispositivo (incompatible con la del sistema):
+    //   GET /api/xtr-4500l/getBolsinLocation
+    //       ?numeroBolsin={nro}&codigoComisionMedicaOrigen={codigo}
+    //   Header: X-API-Key
+    //   Respuesta: {"items":[{"numeroBolsin":101,"latitud":-31.42,
+    //               "longitud":-64.18,"fechaHoraUltimaActualizacion":"2026-03-07T12:30:00"}]}
+    // ---------------------------------------------------------------------
     public class ServicioGPSTrackerXTR4500L
     {
         // Atributos (no van en el diagrama de clases)
-        private int numeroBolsin;
+        private const string urlBaseAPI = "http://localhost:8080";
 
-        // Constructor (no va en el diagrama de clases)
-        public ServicioGPSTrackerXTR4500L(int numeroBolsin)
+        private static readonly HttpClient clienteHttp = new HttpClient
         {
-            this.numeroBolsin = numeroBolsin;
-        }
+            BaseAddress = new Uri(urlBaseAPI),
+            Timeout = TimeSpan.FromSeconds(5),
+        };
 
         // Métodos
+        // Devuelve el JSON tal cual lo entrega el dispositivo, o null si no
+        // hay ubicación para ese bolsín (401, 400, 404) o si la API no responde.
         public string? getBolsinLocation(string apiKey, int numeroBolsin, string codigoCMOrigen)
         {
-            // Se podría agregar una validación de la API Key y del código de
-            // la comisión médica de origen
-            if (numeroBolsin == this.numeroBolsin)
-            {
-                var latitudMinima = -54.79268494188909;
-                var latitudMaxima = -21.175298717100606;
-                var longitudMinima = -73.45192942228589;
-                var longitudMaxima = -53.53492864973965;
-                double latitud,
-                    longitud;
+            string url =
+                "/api/xtr-4500l/getBolsinLocation"
+                + $"?numeroBolsin={numeroBolsin}"
+                + $"&codigoComisionMedicaOrigen={Uri.EscapeDataString(codigoCMOrigen)}";
 
-                do
+            using var solicitud = new HttpRequestMessage(HttpMethod.Get, url);
+            solicitud.Headers.Add("X-API-Key", apiKey);
+
+            try
+            {
+                using HttpResponseMessage respuesta = clienteHttp.Send(solicitud);
+                using var lector = new StreamReader(respuesta.Content.ReadAsStream());
+                string cuerpo = lector.ReadToEnd();
+
+                if (!respuesta.IsSuccessStatusCode)
                 {
-                    latitud =
-                        latitudMinima + (latitudMaxima - latitudMinima) * new Random().NextDouble();
-                    longitud =
-                        longitudMinima
-                        + (longitudMaxima - longitudMinima) * new Random().NextDouble();
-                } while (!Localizacion.EstaEnArgentina(latitud, longitud));
+                    Console.WriteLine(
+                        $"GPS XTR-4500L: el bolsín {numeroBolsin} no tiene ubicación "
+                            + $"(HTTP {(int)respuesta.StatusCode}): {cuerpo}"
+                    );
+                    return null;
+                }
 
-                var fechaHoraActualUTC = DateTime.UtcNow;
-                var fechaHoraActualFormateada = fechaHoraActualUTC.ToString("yyyy-MM-ddTHH:mm:ssZ");
-
-                var localizacion =
-                    "{"
-                    + $"\"numeroBolsin\": {numeroBolsin},"
-                    + $"\"latitud\": {latitud.ToString(CultureInfo.InvariantCulture)},"
-                    + $"\"longitud\": {longitud.ToString(CultureInfo.InvariantCulture)},"
-                    + $"\"fechaHoraUltimaActualizacion\": \"{fechaHoraActualFormateada}\""
-                    + "}";
-
-                return localizacion;
+                return cuerpo;
             }
-            else
+            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
             {
+                Console.WriteLine(
+                    $"GPS XTR-4500L: no se pudo conectar con la API en {urlBaseAPI}. "
+                        + $"¿Está levantada? ({ex.Message})"
+                );
                 return null;
             }
         }
     }
 }
-

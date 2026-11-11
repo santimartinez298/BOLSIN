@@ -1,4 +1,4 @@
-﻿@using Bolsines.Datos_Prueba
+﻿@using Bolsines.Persistencia
 @using Bolsines.Entidades
 @using Microsoft.AspNetCore.Components.Web
 @page "/"
@@ -15,8 +15,10 @@
 
     protected override void OnInitialized()
     {
-		var empleados = DatosPrueba.cargarEmpleados();
-        var sesionActual = DatosPrueba.cargarSesionActual();
+        // Una sola instancia del repositorio para ambas consultas
+        var repositorio = new RepositorioBolsines();
+        var empleados = repositorio.cargarEmpleados();
+        var sesionActual = repositorio.cargarSesionActual();
         var usuarioLogueado = sesionActual.getUsuario();
 
         foreach (Empleado empleado in empleados)
