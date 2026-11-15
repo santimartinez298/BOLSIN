@@ -67,8 +67,20 @@ namespace Bolsines.Controlador
         {
             this.buscarCMUsuarioLogueado();
             this.obtenerBolsinesEnviados();
+
+            // A1: no se encuentran bolsines en estado enviado
+            if (this.bolsinesEnviados.Count == 0)
+            {
+                this.localizacionBolsines = new();
+                this.mostrarUbicacionEnMapa(this.localizacionBolsines);
+                pantallaSeguimiento.informarNoHayBolsinesEnviados();
+                return;
+            }
+
             this.buscarLocalizacionBolsines();
-            this.mostrarUbicacionEnMapa();
+            this.verificarBolsinesSinUbicacion();
+            this.mostrarOpcionesFiltroCMDestino();
+            this.mostrarUbicacionEnMapa(this.localizacionBolsines);
             pantallaSeguimiento.pedirSeleccionBolsin(this.localizacionBolsines);
         }
 
@@ -118,10 +130,101 @@ namespace Bolsines.Controlador
             );
         }
 
-        public void mostrarUbicacionEnMapa()
+        // A3: el GPS Tracker no pudo informar la ubicación de uno o más bolsines
+        public void verificarBolsinesSinUbicacion()
+        {
+            List<int> bolsinesSinUbicacion = new List<int>();
+
+            foreach (var enviado in this.bolsinesEnviados)
+            {
+                bool tieneUbicacion = false;
+
+                foreach (var localizacion in this.localizacionBolsines)
+                {
+                    if (localizacion.numeroBolsin == enviado.numero)
+                    {
+                        tieneUbicacion = true;
+                        break;
+                    }
+                }
+
+                if (!tieneUbicacion)
+                {
+                    bolsinesSinUbicacion.Add(enviado.numero);
+                }
+            }
+
+            if (bolsinesSinUbicacion.Count > 0)
+            {
+                pantallaSeguimiento.informarBolsinesSinUbicacion(bolsinesSinUbicacion);
+            }
+        }
+
+        // Paso 6: opciones para filtrar por CM destino
+        public void mostrarOpcionesFiltroCMDestino()
+        {
+            List<(string codigo, string nombre)> opciones = new List<(string codigo, string nombre)>();
+
+            foreach (var enviado in this.bolsinesEnviados)
+            {
+                ComisionMedica cmDestino = enviado.bolsin.obtenerCMDestino();
+                string codigo = cmDestino.getCodigo();
+
+                if (!opciones.Exists(opcion => opcion.codigo == codigo))
+                {
+                    opciones.Add((codigo, cmDestino.getNombre()));
+                }
+            }
+
+            pantallaSeguimiento.mostrarOpcionesFiltroCMDestino(opciones);
+        }
+
+        public void mostrarUbicacionEnMapa(
+            List<(
+                Bolsin bolsin,
+                int numeroBolsin,
+                (double latitud, double longitud) ubicacion,
+                DateTime fechaHoraUbicacion
+            )> localizacionesAMostrar
+        )
         {
             this.interfazGoogleMaps = new InterfazGoogleMaps();
-            this.interfazGoogleMaps.mostrarBolsinesEnMapa(this.localizacionBolsines);
+            this.interfazGoogleMaps.mostrarBolsinesEnMapa(localizacionesAMostrar);
+        }
+
+        // Paso 6: filtrar por número de precinto o CM destino
+        public void tomarFiltro(int? numeroPrecinto, string? codigoCMDestino)
+        {
+            var bolsinesFiltrados = new List<(
+                Bolsin bolsin,
+                int numeroBolsin,
+                (double latitud, double longitud) ubicacion,
+                DateTime fechaHoraUbicacion
+            )>();
+
+            foreach (var localizacion in this.localizacionBolsines)
+            {
+                bool coincidePrecinto =
+                    numeroPrecinto is null
+                    || localizacion.bolsin.getNumeroPrecinto() == numeroPrecinto.Value;
+                bool coincideCMDestino =
+                    codigoCMDestino is null
+                    || localizacion.bolsin.obtenerCMDestino().getCodigo() == codigoCMDestino;
+
+                if (coincidePrecinto && coincideCMDestino)
+                {
+                    bolsinesFiltrados.Add(localizacion);
+                }
+            }
+
+            // A2: no se encuentra bolsín con el número de precinto ingresado
+            if (numeroPrecinto is not null && bolsinesFiltrados.Count == 0)
+            {
+                pantallaSeguimiento.informarPrecintoNoEncontrado(numeroPrecinto.Value);
+            }
+
+            this.mostrarUbicacionEnMapa(bolsinesFiltrados);
+            pantallaSeguimiento.pedirSeleccionBolsin(bolsinesFiltrados);
         }
 
         public void tomarSeleccionBolsin(
@@ -134,14 +237,30 @@ namespace Bolsines.Controlador
         )
         {
             this.bolsinSeleccionado = bolsinSeleccionado;
-            pantallaSeguimiento.solicitarConfirmacionEnvioMail();
+            ComisionMedica cmDestino = bolsinSeleccionado.bolsin.obtenerCMDestino();
+
+            // Paso 8: consulta si se desea enviar el correo al GCM destino
+            pantallaSeguimiento.solicitarConfirmacionEnvioMail(
+                bolsinSeleccionado.numero,
+                bolsinSeleccionado.bolsin.getNumeroPrecinto(),
+                cmDestino.getNombre(),
+                bolsinSeleccionado.fechaHoraUbicacion,
+                bolsinSeleccionado.ubicacion.latitud,
+                bolsinSeleccionado.ubicacion.longitud
+            );
+        }
+
+        // A5: el EB no selecciona la opción para enviar el correo electrónico
+        public void tomarNoEnvioCorreo()
+        {
+            pantallaSeguimiento.informarCorreoNoEnviado(this.bolsinSeleccionado.numero);
         }
 
         public async Task tomarConfirmacion()
         {
             this.obtenerCorreoGerente();
             this.llamarCU30();
-            this.pantallaSeguimiento.informarEnvioMail();
+            this.pantallaSeguimiento.informarEnvioMail(this.emailGCMDestino ?? "");
             this.senalBotonAceptar = new TaskCompletionSource<bool>();
 
             Task usuarioAcepto = senalBotonAceptar.Task;
@@ -178,6 +297,12 @@ namespace Bolsines.Controlador
                 this.bolsinSeleccionado.ubicacion.longitud
             );
             Console.WriteLine("CU 30 llamado con éxito");
+        }
+
+        // A4: el EB cancela la ejecución del caso de uso
+        public void cancelarCU()
+        {
+            this.finCU();
         }
 
         public void finCU()

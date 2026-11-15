@@ -1,31 +1,4 @@
-.page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    color: #5284c8;
-}
-
-main {
-    flex: 1;
-    background-color: #d0e9fa;
-}
-
-.sidebar {
-    background-color: #5284c8;
-}
-
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
-
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-}
+/* Los estilos del layout están en wwwroot/bolsines.css */
 
 #blazor-error-ui {
     color-scheme: light only;

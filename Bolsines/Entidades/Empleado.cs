@@ -63,5 +63,11 @@
         {
             return this.nombre;
         }
+
+        // Para mostrar el nombre completo en el encabezado
+        public string getApellido()
+        {
+            return this.apellido;
+        }
     }
 }

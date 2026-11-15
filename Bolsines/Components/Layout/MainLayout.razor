@@ -1,19 +1,31 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using Bolsines.Persistencia
+@using Bolsines.Entidades
 
 <MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<div class="page">
-    <div class="sidebar">
+<div class="bol-app">
+    <div class="bol-franja"></div>
+    <header class="bol-header">
+        <a class="bol-marca" href="">
+            <img src="bolsines_v2.png" alt="Logo Bolsines" />
+            <strong>Bolsines</strong>
+        </a>
         <NavMenu />
-    </div>
+        <div class="bol-usuario">
+            <div class="bol-usuario-datos">
+                <b>@nombreCompleto</b>
+                <span>@nombreCM</span>
+            </div>
+            <div class="bol-avatar">@iniciales</div>
+        </div>
+    </header>
 
-    <main>
-        <article class="content px-4">
-            @Body
-        </article>
+    <main class="bol-main">
+        @Body
     </main>
 </div>
 
@@ -22,3 +34,30 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private string nombreCompleto = "";
+    private string iniciales = "";
+    private string nombreCM = "";
+
+    // Datos del empleado logueado para el encabezado
+    protected override void OnInitialized()
+    {
+        var repositorio = new RepositorioBolsines();
+        var empleados = repositorio.cargarEmpleados();
+        var usuarioLogueado = repositorio.cargarSesionActual().getUsuario();
+
+        foreach (Empleado empleado in empleados)
+        {
+            if (empleado.esTuUsuario(usuarioLogueado))
+            {
+                string nombre = empleado.getNombre();
+                string apellido = empleado.getApellido();
+                this.nombreCompleto = $"{nombre} {apellido}";
+                this.iniciales = $"{nombre.Substring(0, 1)}{apellido.Substring(0, 1)}";
+                this.nombreCM = empleado.mostrarCM().nombre;
+                break;
+            }
+        }
+    }
+}

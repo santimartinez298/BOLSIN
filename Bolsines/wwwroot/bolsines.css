@@ -1,0 +1,482 @@
+/* =====================================================================
+   Estilos de la interfaz de Bolsines
+   Paleta: azul y amarillo del logo, sobre blanco.
+   Prefijos: bol- (layout), b- (componentes), ini- (inicio), seg- (seguimiento)
+   ===================================================================== */
+
+:root {
+    --azul: #31609B;
+    --azul-osc: #244B7C;
+    --azul-claro: #EAF0F7;
+    --amarillo: #F7C303;
+    --amarillo-claro: #FFF7D6;
+    --fondo: #F5F6F8;
+    --borde: #DDE1E6;
+    --texto: #1F2933;
+    --texto2: #5B6672;
+    --texto3: #8A949E;
+}
+
+/* ---------- Layout ---------- */
+.bol-app {
+    min-height: 100vh;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: Roboto, Arial, sans-serif;
+    font-size: 14px;
+}
+
+.bol-app h1, .bol-app h2, .bol-app h3 {
+    font-family: Roboto, Arial, sans-serif;
+}
+
+.bol-franja {
+    height: 4px;
+    background: var(--amarillo);
+}
+
+.bol-header {
+    background: #fff;
+    border-bottom: 1px solid var(--borde);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 32px;
+}
+
+.bol-marca {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-right: 40px;
+    text-decoration: none;
+}
+
+.bol-marca img {
+    width: 48px;
+    height: 35px;
+}
+
+.bol-marca strong {
+    font-size: 20px;
+    color: var(--azul);
+    font-weight: 700;
+}
+
+.bol-nav {
+    display: flex;
+    height: 100%;
+}
+
+.bol-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    height: 100%;
+    color: var(--texto2);
+    text-decoration: none;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+}
+
+.bol-nav-link:hover {
+    color: var(--azul);
+}
+
+.bol-nav-link.active {
+    color: var(--azul);
+    border-bottom-color: var(--amarillo);
+}
+
+.bol-usuario {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bol-usuario-datos {
+    text-align: right;
+    line-height: 1.3;
+}
+
+.bol-usuario-datos b {
+    display: block;
+    font-weight: 500;
+}
+
+.bol-usuario-datos span {
+    font-size: 12px;
+    color: var(--texto3);
+}
+
+.bol-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--azul);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-weight: 500;
+}
+
+.bol-pagina {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 32px;
+}
+
+/* ---------- Componentes ---------- */
+.b-titulo {
+    font-size: 24px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.b-bajada {
+    color: var(--texto2);
+    margin: 4px 0 0;
+}
+
+.b-bajada b {
+    color: var(--texto);
+    font-weight: 500;
+}
+
+.b-caja {
+    background: #fff;
+    border: 1px solid var(--borde);
+    border-radius: 6px;
+}
+
+.b-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 18px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.b-btn-azul {
+    background: var(--azul);
+    color: #fff;
+}
+
+.b-btn-azul:hover {
+    background: var(--azul-osc);
+    color: #fff;
+}
+
+.b-btn-azul:disabled {
+    background: #B9C6D6;
+    cursor: not-allowed;
+}
+
+.b-btn-borde {
+    background: #fff;
+    color: var(--azul);
+    border-color: #B9C6D6;
+}
+
+.b-btn-borde:hover {
+    background: var(--azul-claro);
+}
+
+.b-btn-texto {
+    background: none;
+    color: var(--texto2);
+}
+
+.b-btn-texto:hover {
+    color: var(--texto);
+}
+
+.b-fila-btn {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.b-campo {
+    margin-bottom: 10px;
+}
+
+.b-campo label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--texto2);
+    margin-bottom: 4px;
+}
+
+.b-campo input, .b-campo select {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #C9D1DB;
+    border-radius: 4px;
+    padding: 0 10px;
+    background: #fff;
+    color: var(--texto);
+    font-size: 14px;
+}
+
+.b-campo input:focus, .b-campo select:focus {
+    outline: 2px solid var(--azul-claro);
+    border-color: var(--azul);
+}
+
+.b-aviso {
+    background: var(--amarillo-claro);
+    border-left: 4px solid var(--amarillo);
+    padding: 10px 12px;
+    border-radius: 0 4px 4px 0;
+    color: #5C4A00;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.b-aviso b {
+    color: var(--texto);
+}
+
+/* ---------- Inicio ---------- */
+.ini-opcion {
+    margin-top: 28px;
+    max-width: 560px;
+    padding: 24px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.ini-icono {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--azul-claro);
+    display: grid;
+    place-items: center;
+    flex: none;
+}
+
+.ini-opcion h2 {
+    font-size: 17px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.ini-opcion p {
+    color: var(--texto2);
+    margin: 4px 0 14px;
+    line-height: 1.45;
+}
+
+/* ---------- Seguimiento ---------- */
+.seg {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 32px;
+    height: calc(100vh - 68px);
+    min-height: 660px;
+    display: flex;
+    flex-direction: column;
+}
+
+.seg-cab {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+}
+
+.seg-cancelar {
+    margin-left: auto;
+}
+
+.seg-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+    margin-top: 20px;
+    flex: 1;
+    min-height: 0;
+}
+
+.seg-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.seg-bloque {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--borde);
+}
+
+.seg-bloque:last-child {
+    border-bottom: 0;
+}
+
+.seg-subtit {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--texto3);
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin: 0 0 10px;
+}
+
+.seg-msj {
+    margin-top: 10px;
+}
+
+.seg-ayuda {
+    color: var(--texto3);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.seg-resumen {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 5px 10px;
+    font-size: 13px;
+    margin: 0;
+}
+
+.seg-resumen dt {
+    color: var(--texto3);
+    font-weight: 400;
+}
+
+.seg-resumen dd {
+    margin: 0;
+}
+
+.seg-pregunta {
+    margin-top: 14px;
+    background: var(--azul-claro);
+    border-radius: 4px;
+    padding: 12px 14px;
+    line-height: 1.45;
+}
+
+.seg-pregunta .b-fila-btn {
+    margin-top: 12px;
+}
+
+.seg-vacio {
+    padding: 28px 22px;
+    line-height: 1.5;
+    color: var(--texto2);
+}
+
+.seg-vacio b {
+    display: block;
+    color: var(--texto);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.seg-mapa {
+    position: relative;
+    overflow: hidden;
+}
+
+.seg-mapa #map {
+    position: absolute;
+    inset: 0;
+}
+
+/* Etiqueta del bolsín seleccionado en el mapa */
+.leaflet-tooltip.tooltip-seleccionado {
+    background: var(--amarillo);
+    border-color: var(--amarillo);
+    font-weight: 700;
+}
+
+/* ---------- Ventana de resultado ---------- */
+.b-velo {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 30, 45, .45);
+    display: grid;
+    place-items: center;
+    z-index: 2000;
+}
+
+.b-ventana {
+    width: 480px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+    overflow: hidden;
+}
+
+.b-ventana-tope {
+    height: 4px;
+    background: var(--amarillo);
+}
+
+.b-ventana-cuerpo {
+    padding: 22px 24px;
+}
+
+.b-ventana-cuerpo h2 {
+    font-size: 18px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+}
+
+.b-ventana-cuerpo p {
+    color: var(--texto2);
+    margin: 8px 0 0;
+    line-height: 1.5;
+}
+
+.b-ventana-cuerpo dl {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 8px 12px;
+    margin: 16px 0 0;
+    padding: 14px 16px;
+    background: var(--fondo);
+    border-radius: 4px;
+    font-size: 13.5px;
+}
+
+.b-ventana-cuerpo dt {
+    color: var(--texto3);
+    font-weight: 400;
+}
+
+.b-ventana-cuerpo dd {
+    margin: 0;
+}
+
+.b-ventana-botones {
+    padding: 14px 24px;
+    border-top: 1px solid var(--borde);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.b-tilde {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--azul);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+}

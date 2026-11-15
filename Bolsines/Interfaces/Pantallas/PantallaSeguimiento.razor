@@ -1,4 +1,5 @@
-﻿@using Bolsines.Controlador
+@using System.Globalization
+@using Bolsines.Controlador
 @using Bolsines.Entidades
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
@@ -11,100 +12,182 @@
 
 @if (estaHabilitada)
 {
-    <h1 style="text-align: center; margin-bottom: 15px;">
-        Seguimiento de Bolsines
-    </h1>
-    <h3 style="text-align: center; margin: 15px auto;">
-        @txtCMUsuario
-    </h3>
-    <div @ref="mapBolsinesEnviados" id="map"
-         style="width: 800px; height: 600px; margin: 15px auto; border: 4px solid #5284c8; border-radius: 16px;">
-    </div>
-    <div style="width: 800px; margin: 15px 220px; text-align: left;">
-        <label style="color: #5284c8; margin-bottom: 7.5px;">
-            @lblSeleccionBolsinMapa
-        </label>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <select @onchange="OnSeleccionarBolsin"
-                    style="width: 188.75px; height: 50px; background-color: #ecf6fd; color: #5284c8; border-radius: 8px; padding-left: 12.5px;">
-                <option value="" disabled selected hidden>Número de bolsín</option>
-                @if (cmbBolsinesMapa != null)
-                {
-                    @foreach (var bolsin in cmbBolsinesMapa)
-                    {
-                        <option value="@bolsin.numero" style="color: #5284c8;">
-                            Bolsín @bolsin.numero
-                        </option>
-                    }
-                }
-            </select>
-
-            @if (btnConfirmarEnvioMail)
-            {
-                <button @onclick="tomarConfirmacion"
-                        style="width: 188.75px; height: 50px; background-color: #5284c8; color: #d0e9fa; border: none; text-align: center; border-radius: 8px; cursor: pointer;">
-                    Notificar Ubicación
-                </button>
-            }
-
-                <button @onclick="IrAlMenuPrincipal"
-                    style="width: 188.75px; height: 50px; background-color: #b63321; color: #d0e9fa; border: none; text-align: center; border-radius: 8px; cursor: pointer; margin-left: auto;">
-                    Menú Principal
-                </button>           
+    <div class="seg">
+        <div class="seg-cab">
+            <div>
+                <h1 class="b-titulo">Seguimiento de bolsines</h1>
+                <p class="b-bajada">Comisión médica: <b>@txtCMUsuario</b></p>
+            </div>
+            <button class="b-btn b-btn-borde seg-cancelar" @onclick="cancelarCU">Cancelar</button>
         </div>
 
-        @if (mostrarPreguntaNotificacion)
-        {
-            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-                <div style="background-color: #fef7d6; padding: 15px; border-radius: 8px; width: 400px; text-align: center; filter: drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.3));">
-                    <h5 style="color: #c9ab2a; text-align: left;">Confirmar Notificación</h5>
-                    <p style="color: #333; text-align: left">
-                        ¿Desea enviar la notificación con la ubicación del bolsín?
-                    </p>
-                    <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 15px;">
-                        <button @onclick="() => ResponderPregunta(true)"
-                                style="padding: 10px 25px; background-color: #9dac78; color: #fef7d6; border: none; border-radius: 8px; cursor: pointer;">
-                            Confirmar
-                        </button>
-                        <button @onclick="() => ResponderPregunta(false)"
-                                style="padding: 10px 25px; background-color: #b63321; color: #fef7d6; border: none; border-radius: 8px; cursor: pointer;">
-                            Cancelar
-                        </button>
+        <div class="seg-grid">
+            <div class="b-caja seg-panel">
+                @if (sinBolsinesEnviados)
+                {
+                    @* A1: no se encuentran bolsines en estado enviado *@
+                    <div class="seg-vacio">
+                        <b>No se encontraron bolsines enviados</b>
+                        No hay bolsines en estado Enviado cuya comisión médica de origen sea
+                        @(txtCMUsuario).
                     </div>
-                </div>
-            </div>
-        }
+                    <div class="seg-bloque">
+                        <div class="b-fila-btn">
+                            <button class="b-btn b-btn-azul" @onclick="cancelarCU">Volver al inicio</button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @* Paso 6: filtrar por número de precinto o CM destino *@
+                    <div class="seg-bloque">
+                        <h3 class="seg-subtit">Filtrar</h3>
+                        <div class="b-campo">
+                            <label for="f-precinto">Número de precinto</label>
+                            <input id="f-precinto" placeholder="Ej. 1437" @bind="filtroPrecinto"
+                                   @bind:event="oninput" @onkeydown="TeclaFiltro" />
+                        </div>
+                        <div class="b-campo">
+                            <label for="f-destino">Comisión médica destino</label>
+                            <select id="f-destino" @bind="filtroCMDestino">
+                                <option value="">Todas</option>
+                                @foreach (var cm in opcionesCMDestino)
+                                {
+                                    <option value="@cm.codigo">@(cm.nombre) (@(cm.codigo))</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="b-fila-btn">
+                            <button class="b-btn b-btn-texto" @onclick="LimpiarFiltro">Limpiar</button>
+                            <button class="b-btn b-btn-borde" @onclick="AplicarFiltro">Filtrar</button>
+                        </div>
+                        @if (mensajeFiltro is not null)
+                        {
+                            @* A2: no se encuentra bolsín con el número de precinto ingresado *@
+                            <div class="b-aviso seg-msj">@mensajeFiltro</div>
+                        }
+                    </div>
 
-        @if (mostrarMensajeNotificacion)
-        {
-            <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000;">
-                <div style="background-color: #edf3e0; padding: 15px; border-radius: 8px; width: 400px; text-align: center; filter: drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.3));">
-                    <h5 style="color: #9dac78; text-align: left;">Notificación Enviada</h5>
-                    <p style="color: #333; text-align: left">
-                        El gerente de la comisión médica de destino fue notificado sobre la
-                        ubicación del bolsín seleccionado.
+                    @if (bolsinesSinUbicacion.Count > 0)
+                    {
+                        @* A3: el GPS Tracker no pudo informar la ubicación *@
+                        <div class="seg-bloque">
+                            <div class="b-aviso">
+                                @if (bolsinesSinUbicacion.Count == 1)
+                                {
+                                    <text>El GPS Tracker no pudo informar la ubicación del bolsín <b>@(bolsinesSinUbicacion[0])</b>.</text>
+                                }
+                                else
+                                {
+                                    <text>El GPS Tracker no pudo informar la ubicación de los bolsines <b>@(string.Join(", ", bolsinesSinUbicacion))</b>.</text>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    @if (haySeleccion)
+                    {
+                        <div class="seg-bloque">
+                            <h3 class="seg-subtit">Bolsín seleccionado</h3>
+                            <dl class="seg-resumen">
+                                <dt>Número</dt><dd>@selNumero</dd>
+                                <dt>Precinto</dt><dd>@selPrecinto</dd>
+                                <dt>CM destino</dt><dd>@selCMDestino</dd>
+                                <dt>Última actualización</dt><dd>@(selFecha.ToString("dd/MM/yyyy HH:mm"))</dd>
+                                <dt>Coordenadas</dt><dd>@Coordenadas()</dd>
+                            </dl>
+                            @* Paso 8: el sistema consulta si se desea enviar el correo *@
+                            <div class="seg-pregunta">
+                                ¿Desea enviar un correo electrónico al Gerente de la @(selCMDestino) para
+                                informar la ubicación del bolsín?
+                                <div class="b-fila-btn">
+                                    <button class="b-btn b-btn-texto" @onclick="NoEnviarCorreo">No enviar</button>
+                                    <button class="b-btn b-btn-azul" @onclick="tomarConfirmacion" disabled="@enviando">Enviar correo</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="seg-bloque">
+                            <p class="seg-ayuda">
+                                @if (correoNoEnviado is not null)
+                                {
+                                    <text>No se envió el correo del bolsín @(correoNoEnviado). </text>
+                                }
+                                Seleccioná un bolsín en el mapa para informar su ubicación.
+                            </p>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="b-caja seg-mapa">
+                <div @ref="mapBolsinesEnviados" id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    @if (mostrarMensajeNotificacion)
+    {
+        <div class="b-velo">
+            <div class="b-ventana">
+                <div class="b-ventana-tope"></div>
+                <div class="b-ventana-cuerpo">
+                    <h2><span class="b-tilde">✓</span>Ubicación notificada</h2>
+                    <p>
+                        Se envió un correo al Gerente de la @(selCMDestino) (@(emailNotificado)) con la
+                        ubicación del bolsín.
                     </p>
-                    <div style="display: flex; justify-content: flex-end;">
-                        <button @onclick="CerrarVentanaInformacion"
-                                style="padding: 10px 25px; margin-top: -0.5px; background-color: #9dac78; color: #edf3e0; border: none; border-radius: 8px; cursor: pointer;">
-                            Aceptar
-                        </button>
-                    </div>
+                    <dl>
+                        <dt>Número de bolsín</dt><dd>@selNumero</dd>
+                        <dt>Última actualización</dt><dd>@(selFecha.ToString("dd/MM/yyyy HH:mm"))</dd>
+                        <dt>Coordenadas</dt><dd>@Coordenadas()</dd>
+                    </dl>
+                </div>
+                <div class="b-ventana-botones">
+                    <button class="b-btn b-btn-azul" @onclick="CerrarVentanaInformacion">Aceptar</button>
                 </div>
             </div>
-        }
-    </div>
+        </div>
+    }
 }
 
 @code {
     // Atributos del componente
     private IJSObjectReference? moduloJS;
-    private string? resultadoJS;
+    private DotNetObjectReference<PantallaSeguimiento>? referenciaNet;
     private bool estaHabilitada = false;
     private bool mapaEstaCargado = false;
-    private bool mostrarPreguntaNotificacion = false;
-    private TaskCompletionSource<bool>? senalBotonConfirmar;
+    private bool mapaDesactualizado = false;
+    private bool enviando = false;
+
+    // Datos de la pantalla
+    private string txtCMUsuario = "";
+    private ElementReference mapBolsinesEnviados;
+    private List<(
+        Bolsin bolsin,
+        int numero,
+        (double latitud, double longitud) ubicacion,
+        DateTime fechaHoraUbicacion
+    )> cmbBolsinesMapa = new();
+    private List<(string codigo, string nombre)> opcionesCMDestino = new();
+    private List<int> bolsinesSinUbicacion = new();
+    private bool sinBolsinesEnviados = false;
+    private string filtroPrecinto = "";
+    private string filtroCMDestino = "";
+    private string? mensajeFiltro;
+    private bool haySeleccion = false;
+    private int? correoNoEnviado;
+    private int selNumero;
+    private int selPrecinto;
+    private string selCMDestino = "";
+    private DateTime selFecha;
+    private double selLatitud;
+    private double selLongitud;
     private bool mostrarMensajeNotificacion = false;
+    private string emailNotificado = "";
+    private ControladorSeguimiento controladorSeguimiento = default!;
 
     // Métodos del componente
     protected override void OnInitialized()
@@ -114,29 +197,36 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (estaHabilitada && !mapaEstaCargado)
+        if (!estaHabilitada)
+        {
+            return;
+        }
+
+        if (!mapaEstaCargado)
         {
             mapaEstaCargado = true;
-
-            var cliente = new HttpClient();
-            var localizaciones = await cliente.GetStringAsync(
-                "http://localhost:5082/localizaciones.json"
-            );
-            localizaciones = localizaciones.Replace("\n", " ");
-
-            moduloJS = await JsRuntime.InvokeAsync<IJSObjectReference>(
-                "import",
-                "./mapaLeaflet.js"
-            );
-
-            if (moduloJS is not null)
-            {
-                resultadoJS = await moduloJS.InvokeAsync<string>(
-                    "cargarMapa",
-                    Convert.ToString(localizaciones)
-                );
-            }
+            mapaDesactualizado = false;
+            referenciaNet = DotNetObjectReference.Create(this);
+            moduloJS = await JsRuntime.InvokeAsync<IJSObjectReference>("import", "./mapaLeaflet.js");
+            await moduloJS.InvokeAsync<string>("cargarMapa", LeerLocalizaciones(), referenciaNet);
         }
+        else if (mapaDesactualizado && moduloJS is not null)
+        {
+            mapaDesactualizado = false;
+            await moduloJS.InvokeVoidAsync("actualizarMarcadores", LeerLocalizaciones());
+        }
+
+        if (moduloJS is not null)
+        {
+            await moduloJS.InvokeVoidAsync("resaltarBolsin", haySeleccion ? selNumero : 0);
+        }
+    }
+
+    // Lee el GeoJSON que genera ServidorGoogleMaps (misma ruta relativa que usa para escribirlo)
+    private string LeerLocalizaciones()
+    {
+        string ruta = Path.Combine("wwwroot", "localizaciones.json");
+        return File.Exists(ruta) ? File.ReadAllText(ruta) : "[]";
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
@@ -150,33 +240,65 @@
             catch (JSDisconnectedException)
             {
                 // La comunicación entre el navegador y el módulo JS ya no existe.
-                // No hace falta hacer nada más.
             }
         }
+        referenciaNet?.Dispose();
     }
 
-    private void OnSeleccionarBolsin(ChangeEventArgs e)
+    // Paso 7: el EB selecciona un bolsín del mapa (lo llama mapaLeaflet.js al hacer clic)
+    [JSInvokable]
+    public void SeleccionarBolsinDesdeMapa(int numeroSeleccionado)
     {
-        if (
-            int.TryParse(e.Value?.ToString(), out int numeroSeleccionado)
-            && this.cmbBolsinesMapa is not null
-        )
+        var bolsinSeleccionado = this.cmbBolsinesMapa.FirstOrDefault(bolsinDeMapa =>
+            bolsinDeMapa.numero == numeroSeleccionado
+        );
+
+        if (bolsinSeleccionado.bolsin is not null && !mostrarMensajeNotificacion)
         {
-            var bolsinSeleccionado = this.cmbBolsinesMapa.FirstOrDefault(bolsinDeMapa =>
-                bolsinDeMapa.numero == numeroSeleccionado
-            );
-
-            if (bolsinSeleccionado.bolsin is not null)
-            {
-                this.tomarSeleccionBolsin(bolsinSeleccionado);
-            }
+            this.tomarSeleccionBolsin(bolsinSeleccionado);
+            StateHasChanged();
         }
     }
 
-    private void ResponderPregunta(bool confirmado)
+    private void AplicarFiltro()
     {
-        this.mostrarPreguntaNotificacion = false;
-        this.senalBotonConfirmar?.SetResult(confirmado);
+        int? precinto = null;
+        mensajeFiltro = null;
+
+        if (!string.IsNullOrWhiteSpace(filtroPrecinto))
+        {
+            if (int.TryParse(filtroPrecinto.Trim(), out int numero))
+            {
+                precinto = numero;
+            }
+            else
+            {
+                mensajeFiltro = "Ingresá un número de precinto válido.";
+                return;
+            }
+        }
+
+        this.tomarFiltro(precinto, string.IsNullOrEmpty(filtroCMDestino) ? null : filtroCMDestino);
+    }
+
+    private void LimpiarFiltro()
+    {
+        filtroPrecinto = "";
+        filtroCMDestino = "";
+        this.AplicarFiltro();
+    }
+
+    private void TeclaFiltro(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            this.AplicarFiltro();
+        }
+    }
+
+    private void NoEnviarCorreo()
+    {
+        this.controladorSeguimiento.tomarNoEnvioCorreo();
     }
 
     private void CerrarVentanaInformacion()
@@ -185,25 +307,18 @@
         this.controladorSeguimiento.ConfirmacionAceptada();
     }
 
-    private void IrAlMenuPrincipal()
+    private void cancelarCU()
     {
-        NavigationManager.NavigateTo("/");
+        this.controladorSeguimiento.cancelarCU();
     }
 
-    // Atributos
-    private string txtCMUsuario;
-    private ElementReference mapBolsinesEnviados;
-    private string lblSeleccionBolsinMapa;
-    private List<(
-        Bolsin bolsin,
-        int numero,
-        (double latitud, double longitud) ubicacion,
-        DateTime fechaHoraUbicacion
-    )> cmbBolsinesMapa = new();
-    private bool btnConfirmarEnvioMail;
-    private ControladorSeguimiento controladorSeguimiento;
+    private string Coordenadas()
+    {
+        return selLatitud.ToString("0.0000", CultureInfo.InvariantCulture) + ", "
+            + selLongitud.ToString("0.0000", CultureInfo.InvariantCulture);
+    }
 
-    // Métodos
+    // Métodos (mensajes del diagrama de secuencia)
     public void opcionConsultarUbicacionBolsines()
     {
         this.habilitarPantalla();
@@ -221,6 +336,23 @@
         this.txtCMUsuario = $"{nombreCM} ({codigoCM})";
     }
 
+    // A1
+    public void informarNoHayBolsinesEnviados()
+    {
+        this.sinBolsinesEnviados = true;
+    }
+
+    // A3
+    public void informarBolsinesSinUbicacion(List<int> numerosBolsines)
+    {
+        this.bolsinesSinUbicacion = numerosBolsines;
+    }
+
+    public void mostrarOpcionesFiltroCMDestino(List<(string codigo, string nombre)> opciones)
+    {
+        this.opcionesCMDestino = opciones;
+    }
+
     public void pedirSeleccionBolsin(
             List<(
                 Bolsin bolsin,
@@ -230,8 +362,21 @@
             )> localizacionBolsines
         )
     {
-        this.lblSeleccionBolsinMapa = "Seleccione un bolsín:";
         this.cmbBolsinesMapa = localizacionBolsines;
+        this.mapaDesactualizado = true;
+    }
+
+    public void tomarFiltro(int? numeroPrecinto, string? codigoCMDestino)
+    {
+        this.haySeleccion = false;
+        this.correoNoEnviado = null;
+        this.controladorSeguimiento.tomarFiltro(numeroPrecinto, codigoCMDestino);
+    }
+
+    // A2
+    public void informarPrecintoNoEncontrado(int numeroPrecinto)
+    {
+        this.mensajeFiltro = $"No se encontró ningún bolsín con el número de precinto {numeroPrecinto}.";
     }
 
     public void tomarSeleccionBolsin(
@@ -243,29 +388,44 @@
         ) bolsinSeleccionado
     )
     {
+        this.correoNoEnviado = null;
         this.controladorSeguimiento.tomarSeleccionBolsin(bolsinSeleccionado);
     }
 
-    public void solicitarConfirmacionEnvioMail()
+    public void solicitarConfirmacionEnvioMail(
+        int numeroBolsin,
+        int numeroPrecinto,
+        string nombreCMDestino,
+        DateTime fechaHoraUbicacion,
+        double latitud,
+        double longitud
+    )
     {
-        this.btnConfirmarEnvioMail = true;
+        this.selNumero = numeroBolsin;
+        this.selPrecinto = numeroPrecinto;
+        this.selCMDestino = nombreCMDestino;
+        this.selFecha = fechaHoraUbicacion;
+        this.selLatitud = latitud;
+        this.selLongitud = longitud;
+        this.haySeleccion = true;
+    }
+
+    // A5
+    public void informarCorreoNoEnviado(int numeroBolsin)
+    {
+        this.correoNoEnviado = numeroBolsin;
+        this.haySeleccion = false;
     }
 
     public async Task tomarConfirmacion()
     {
-        this.mostrarPreguntaNotificacion = true;
-        this.senalBotonConfirmar = new TaskCompletionSource<bool>();
-
-        var usuarioConfirmo = await this.senalBotonConfirmar.Task;
-
-        if (usuarioConfirmo)
-        {
-            await this.controladorSeguimiento.tomarConfirmacion();
-        }
+        this.enviando = true;
+        await this.controladorSeguimiento.tomarConfirmacion();
     }
 
-    public void informarEnvioMail()
+    public void informarEnvioMail(string emailGCMDestino)
     {
+        this.emailNotificado = emailGCMDestino;
         this.mostrarMensajeNotificacion = true;
     }
 }

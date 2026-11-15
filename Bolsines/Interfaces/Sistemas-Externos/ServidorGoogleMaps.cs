@@ -29,7 +29,11 @@ namespace Bolsines.Interfaces.Sistemas_Externos
                                 localizacion.ubicacion.latitud,
                             },
                         },
-                        properties = new { name = $"Bolsín {localizacion.numeroBolsin}" },
+                        properties = new
+                        {
+                            name = $"Bolsín {localizacion.numeroBolsin}",
+                            numeroBolsin = localizacion.numeroBolsin,
+                        },
                     }
                 );
             }

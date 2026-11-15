@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "type": "Feature",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [
+        -64.1888,
+        -31.4201
+      ]
+    },
+    "properties": {
+      "name": "Bols\u00EDn 101",
+      "numeroBolsin": 101
+    }
+  }
+]

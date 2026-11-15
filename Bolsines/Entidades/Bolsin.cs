@@ -54,6 +54,12 @@
             return this.numeroBolsin;
         }
 
+        // Para el filtro por número de precinto (paso 6 del CU)
+        public int getNumeroPrecinto()
+        {
+            return this.numeroPrecinto;
+        }
+
         public ComisionMedica obtenerCMDestino()
         {
             return this.destino;
