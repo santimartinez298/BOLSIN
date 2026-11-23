@@ -16,13 +16,14 @@ namespace Bolsines.Datos_Prueba
 
         // API Keys de los GPS Trackers (las de la API de la cátedra, dsi-api-bolsines).
         // InterfazGPS usa la primera (XTR-4500L). Una API Key de otro modelo -> HTTP 401.
-        public static List<string> getAPIKeyGPSTrackers()
+        public static string[] getAPIKeyGPSTrackers()
         {
-            List<string> apiKeyGPSTrackers = new List<string>();
-            apiKeyGPSTrackers.Add("sk_xtr_9F3a7C21bE6d4A10f2c8e5b7d913"); // XTR-4500L
-            apiKeyGPSTrackers.Add("sk_nav_7b61d9e4c3a2485fae10c77d5b2f"); // NavTrack QX-7A
-            apiKeyGPSTrackers.Add("sk_geo_f2d84a1c9e7345b8a6d1c3f0972e"); // GeoPulse MTR-900
-            return apiKeyGPSTrackers;
+            return new string[]
+            {
+                "sk_xtr_9F3a7C21bE6d4A10f2c8e5b7d913", // XTR-4500L
+                "sk_nav_7b61d9e4c3a2485fae10c77d5b2f", // NavTrack QX-7A
+                "sk_geo_f2d84a1c9e7345b8a6d1c3f0972e", // GeoPulse MTR-900
+            };
         }
 
         // API Key de Google Maps

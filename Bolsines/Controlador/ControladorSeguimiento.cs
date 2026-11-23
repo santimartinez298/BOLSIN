@@ -1,6 +1,6 @@
+using System.Globalization;
 using Bolsines.Entidades;
 using Bolsines.Interfaces;
-// using Bolsines.Interfaces.Patron_Adaptador;
 using Bolsines.Interfaces.Pantallas;
 using Bolsines.Persistencia;
 using Microsoft.AspNetCore.Components;
@@ -10,7 +10,7 @@ namespace Bolsines.Controlador
     public class ControladorSeguimiento
     {
         // Atributos de interacción
-        private TaskCompletionSource<bool> senalBotonAceptar;
+        private TaskCompletionSource<bool> senalBotonAceptar = new();
         private NavigationManager navigationManager;
 
         // Métodos de interacción
@@ -19,30 +19,32 @@ namespace Bolsines.Controlador
             this.senalBotonAceptar?.TrySetResult(true);
         }
 
-        // Atributos
+        // Atributos (diagrama de clases del patrón Adapter)
+        private int[] numeroBolsin = new int[0];
+        private string codigoCMOrigen = "";
+        private string codigoCMDestino = "";
+        private string[][] localizacionBolsines = new string[0][];
         private Sesion sesionActual;
-        private Usuario usuarioLogueado;
-        private (ComisionMedica cm, string nombre, string codigo) cmUsuarioLogueado;
-        private List<(Bolsin bolsin, int numero)> bolsinesEnviados = new();
-        private List<(
-            Bolsin bolsin,
-            int numeroBolsin,
-            (double latitud, double longitud) ubicacion,
-            DateTime fechaHoraUbicacion
-        )> localizacionBolsines;
-        private (
-            Bolsin bolsin,
-            int numero,
-            (double latitud, double longitud) ubicacion,
-            DateTime fechaHoraUbicacion
-        ) bolsinSeleccionado;
-        private string emailGCMDestino;
+        private Usuario usuarioLogueado = null!;
+        private ComisionMedica cmUsuarioLogueado = null!;
+        private Bolsin[] bolsinesEnviados = new Bolsin[0];
+        private Bolsin bolsinSeleccionado = null!;
+        private ComisionMedica cmDestinoBolsinSeleccionado = null!;
+        private string emailGCMDestino = "";
+
+        // Objetos con los que colabora el controlador
         private PantallaSeguimiento pantallaSeguimiento;
         private List<Empleado> empleados;
         private List<Bolsin> bolsines;
-        private InterfazGPS interfazGPS;
-        private InterfazGoogleMaps interfazGoogleMaps;
+        private InterfazGPS interfazGPS = null!;
+        private InterfazGoogleMaps interfazGoogleMaps = null!;
         private RepositorioBolsines repositorio;
+
+        // Columnas de cada fila de localizacionBolsines (String[][])
+        private const int columnaNumero = 0;
+        private const int columnaLatitud = 1;
+        private const int columnaLongitud = 2;
+        private const int columnaFechaHora = 3;
 
         // Constructor
         public ControladorSeguimiento(
@@ -69,10 +71,10 @@ namespace Bolsines.Controlador
             this.obtenerBolsinesEnviados();
 
             // A1: no se encuentran bolsines en estado enviado
-            if (this.bolsinesEnviados.Count == 0)
+            if (this.bolsinesEnviados.Length == 0)
             {
-                this.localizacionBolsines = new();
-                this.mostrarUbicacionEnMapa(this.localizacionBolsines);
+                this.localizacionBolsines = new string[0][];
+                this.mostrarUbicacionEnMapa();
                 pantallaSeguimiento.informarNoHayBolsinesEnviados();
                 return;
             }
@@ -80,7 +82,7 @@ namespace Bolsines.Controlador
             this.buscarLocalizacionBolsines();
             this.verificarBolsinesSinUbicacion();
             this.mostrarOpcionesFiltroCMDestino();
-            this.mostrarUbicacionEnMapa(this.localizacionBolsines);
+            this.mostrarUbicacionEnMapa();
             pantallaSeguimiento.pedirSeleccionBolsin(this.localizacionBolsines);
         }
 
@@ -92,11 +94,10 @@ namespace Bolsines.Controlador
             {
                 if (empleado.esTuUsuario(this.usuarioLogueado))
                 {
-                    this.cmUsuarioLogueado = empleado.mostrarCM();
-                    pantallaSeguimiento.mostrarCMUsuarioLogueado(
-                        this.cmUsuarioLogueado.nombre,
-                        this.cmUsuarioLogueado.codigo
-                    );
+                    var cm = empleado.mostrarCM();
+                    this.cmUsuarioLogueado = cm.cm;
+                    this.codigoCMOrigen = cm.codigo;
+                    pantallaSeguimiento.mostrarCMUsuarioLogueado(cm.nombre, cm.codigo);
                     return;
                 }
             }
@@ -104,29 +105,32 @@ namespace Bolsines.Controlador
 
         public void obtenerBolsinesEnviados()
         {
+            List<Bolsin> enviados = new List<Bolsin>();
+            List<int> numeros = new List<int>();
+
             foreach (Bolsin bolsin in this.bolsines)
             {
-                if (bolsin.esTuCMOrigen(this.cmUsuarioLogueado.cm) && bolsin.sosEnviado())
+                if (bolsin.esTuCMOrigen(this.cmUsuarioLogueado) && bolsin.sosEnviado())
                 {
-                    var numeroBolsin = bolsin.getNumeroBolsin();
-                    this.bolsinesEnviados.Add((bolsin, numeroBolsin));
+                    enviados.Add(bolsin);
+                    numeros.Add(bolsin.getNumeroBolsin());
                 }
             }
+
+            this.bolsinesEnviados = enviados.ToArray();
+            this.numeroBolsin = numeros.ToArray();
         }
 
+        // buscarLocalizacionBolsines(): void  (diagrama de secuencia del Adapter)
         public void buscarLocalizacionBolsines()
         {
-            // Habría que pasarle datos que no están definidos como atributos en el controlador.
-            // Preguntar si está bien aplicado el patrón Adapter de la manera que ya había hecho.
-            //
-            // IAdaptadorGPSTracker adaptadorGPS = new AdaptadorGPSTrackerXTR4500L(...);
-            //
-            // this.interfazGPS = new InterfazGPS(adaptadorGPS);
-
+            // new(): InterfazGPS
             this.interfazGPS = new InterfazGPS();
+
+            // getBolsinLocation(numeroBolsin: int[], codigoCMOrigen: String): String[][]
             this.localizacionBolsines = this.interfazGPS.getBolsinLocation(
-                this.bolsinesEnviados,
-                this.cmUsuarioLogueado.codigo
+                this.numeroBolsin,
+                this.codigoCMOrigen
             );
         }
 
@@ -135,22 +139,11 @@ namespace Bolsines.Controlador
         {
             List<int> bolsinesSinUbicacion = new List<int>();
 
-            foreach (var enviado in this.bolsinesEnviados)
+            foreach (int numero in this.numeroBolsin)
             {
-                bool tieneUbicacion = false;
-
-                foreach (var localizacion in this.localizacionBolsines)
+                if (this.buscarLocalizacion(numero) is null)
                 {
-                    if (localizacion.numeroBolsin == enviado.numero)
-                    {
-                        tieneUbicacion = true;
-                        break;
-                    }
-                }
-
-                if (!tieneUbicacion)
-                {
-                    bolsinesSinUbicacion.Add(enviado.numero);
+                    bolsinesSinUbicacion.Add(numero);
                 }
             }
 
@@ -165,9 +158,9 @@ namespace Bolsines.Controlador
         {
             List<(string codigo, string nombre)> opciones = new List<(string codigo, string nombre)>();
 
-            foreach (var enviado in this.bolsinesEnviados)
+            foreach (Bolsin bolsin in this.bolsinesEnviados)
             {
-                ComisionMedica cmDestino = enviado.bolsin.obtenerCMDestino();
+                ComisionMedica cmDestino = bolsin.obtenerCMDestino();
                 string codigo = cmDestino.getCodigo();
 
                 if (!opciones.Exists(opcion => opcion.codigo == codigo))
@@ -179,88 +172,87 @@ namespace Bolsines.Controlador
             pantallaSeguimiento.mostrarOpcionesFiltroCMDestino(opciones);
         }
 
-        public void mostrarUbicacionEnMapa(
-            List<(
-                Bolsin bolsin,
-                int numeroBolsin,
-                (double latitud, double longitud) ubicacion,
-                DateTime fechaHoraUbicacion
-            )> localizacionesAMostrar
-        )
+        // mostrarUbicacionEnMapa(): void  (diagrama de secuencia del Adapter)
+        public void mostrarUbicacionEnMapa()
         {
             this.interfazGoogleMaps = new InterfazGoogleMaps();
-            this.interfazGoogleMaps.mostrarBolsinesEnMapa(localizacionesAMostrar);
+            this.interfazGoogleMaps.mostrarBolsinesEnMapa(this.localizacionBolsines);
         }
 
         // Paso 6: filtrar por número de precinto o CM destino
-        public void tomarFiltro(int? numeroPrecinto, string? codigoCMDestino)
+        public void tomarFiltro(int? numeroPrecinto, string? codigoCMDestinoFiltro)
         {
-            var bolsinesFiltrados = new List<(
-                Bolsin bolsin,
-                int numeroBolsin,
-                (double latitud, double longitud) ubicacion,
-                DateTime fechaHoraUbicacion
-            )>();
+            List<string[]> filtradas = new List<string[]>();
 
-            foreach (var localizacion in this.localizacionBolsines)
+            foreach (string[] localizacion in this.localizacionBolsines)
             {
+                Bolsin? bolsin = this.buscarBolsinEnviado(this.leerNumero(localizacion));
+
+                if (bolsin is null)
+                {
+                    continue;
+                }
+
                 bool coincidePrecinto =
-                    numeroPrecinto is null
-                    || localizacion.bolsin.getNumeroPrecinto() == numeroPrecinto.Value;
+                    numeroPrecinto is null || bolsin.getNumeroPrecinto() == numeroPrecinto.Value;
                 bool coincideCMDestino =
-                    codigoCMDestino is null
-                    || localizacion.bolsin.obtenerCMDestino().getCodigo() == codigoCMDestino;
+                    codigoCMDestinoFiltro is null
+                    || bolsin.obtenerCMDestino().getCodigo() == codigoCMDestinoFiltro;
 
                 if (coincidePrecinto && coincideCMDestino)
                 {
-                    bolsinesFiltrados.Add(localizacion);
+                    filtradas.Add(localizacion);
                 }
             }
 
             // A2: no se encuentra bolsín con el número de precinto ingresado
-            if (numeroPrecinto is not null && bolsinesFiltrados.Count == 0)
+            if (numeroPrecinto is not null && filtradas.Count == 0)
             {
                 pantallaSeguimiento.informarPrecintoNoEncontrado(numeroPrecinto.Value);
             }
 
-            this.mostrarUbicacionEnMapa(bolsinesFiltrados);
-            pantallaSeguimiento.pedirSeleccionBolsin(bolsinesFiltrados);
+            string[][] localizacionFiltrada = filtradas.ToArray();
+            this.interfazGoogleMaps = new InterfazGoogleMaps();
+            this.interfazGoogleMaps.mostrarBolsinesEnMapa(localizacionFiltrada);
+            pantallaSeguimiento.pedirSeleccionBolsin(localizacionFiltrada);
         }
 
-        public void tomarSeleccionBolsin(
-            (
-                Bolsin bolsin,
-                int numero,
-                (double latitud, double longitud) ubicacion,
-                DateTime fechaHoraUbicacion
-            ) bolsinSeleccionado
-        )
+        public void tomarSeleccionBolsin(int numeroBolsinSeleccionado)
         {
-            this.bolsinSeleccionado = bolsinSeleccionado;
-            ComisionMedica cmDestino = bolsinSeleccionado.bolsin.obtenerCMDestino();
+            Bolsin? bolsin = this.buscarBolsinEnviado(numeroBolsinSeleccionado);
+            string[]? localizacion = this.buscarLocalizacion(numeroBolsinSeleccionado);
+
+            if (bolsin is null || localizacion is null)
+            {
+                return;
+            }
+
+            this.bolsinSeleccionado = bolsin;
+            this.cmDestinoBolsinSeleccionado = bolsin.obtenerCMDestino();
+            this.codigoCMDestino = this.cmDestinoBolsinSeleccionado.getCodigo();
 
             // Paso 8: consulta si se desea enviar el correo al GCM destino
             pantallaSeguimiento.solicitarConfirmacionEnvioMail(
-                bolsinSeleccionado.numero,
-                bolsinSeleccionado.bolsin.getNumeroPrecinto(),
-                cmDestino.getNombre(),
-                bolsinSeleccionado.fechaHoraUbicacion,
-                bolsinSeleccionado.ubicacion.latitud,
-                bolsinSeleccionado.ubicacion.longitud
+                numeroBolsinSeleccionado,
+                bolsin.getNumeroPrecinto(),
+                this.cmDestinoBolsinSeleccionado.getNombre(),
+                this.leerFechaHora(localizacion),
+                this.leerLatitud(localizacion),
+                this.leerLongitud(localizacion)
             );
         }
 
         // A5: el EB no selecciona la opción para enviar el correo electrónico
         public void tomarNoEnvioCorreo()
         {
-            pantallaSeguimiento.informarCorreoNoEnviado(this.bolsinSeleccionado.numero);
+            pantallaSeguimiento.informarCorreoNoEnviado(this.bolsinSeleccionado.getNumeroBolsin());
         }
 
         public async Task tomarConfirmacion()
         {
             this.obtenerCorreoGerente();
             this.llamarCU30();
-            this.pantallaSeguimiento.informarEnvioMail(this.emailGCMDestino ?? "");
+            this.pantallaSeguimiento.informarEnvioMail(this.emailGCMDestino);
             this.senalBotonAceptar = new TaskCompletionSource<bool>();
 
             Task usuarioAcepto = senalBotonAceptar.Task;
@@ -274,10 +266,7 @@ namespace Bolsines.Controlador
         {
             foreach (Empleado empleado in this.empleados)
             {
-                if (
-                    empleado.esTuCM(this.bolsinSeleccionado.bolsin.obtenerCMDestino())
-                    && empleado.sosGCM()
-                )
+                if (empleado.esTuCM(this.cmDestinoBolsinSeleccionado) && empleado.sosGCM())
                 {
                     this.emailGCMDestino = empleado.getEmail();
                     Console.WriteLine("Correo del gerente de CM destino: " + this.emailGCMDestino);
@@ -288,13 +277,16 @@ namespace Bolsines.Controlador
 
         public void llamarCU30()
         {
+            int numero = this.bolsinSeleccionado.getNumeroBolsin();
+            string[] localizacion = this.buscarLocalizacion(numero)!;
+
             CU_30_Notificar_Ubicacion_de_Bolsin cu30 = new CU_30_Notificar_Ubicacion_de_Bolsin();
             cu30.include(
                 this.emailGCMDestino,
-                this.bolsinSeleccionado.numero,
-                this.bolsinSeleccionado.fechaHoraUbicacion,
-                this.bolsinSeleccionado.ubicacion.latitud,
-                this.bolsinSeleccionado.ubicacion.longitud
+                numero,
+                this.leerFechaHora(localizacion),
+                this.leerLatitud(localizacion),
+                this.leerLongitud(localizacion)
             );
             Console.WriteLine("CU 30 llamado con éxito");
         }
@@ -308,6 +300,51 @@ namespace Bolsines.Controlador
         public void finCU()
         {
             this.navigationManager.NavigateTo("/");
+        }
+
+        // ----- Auxiliares para leer las filas de localizacionBolsines -----
+        private string[]? buscarLocalizacion(int numero)
+        {
+            foreach (string[] localizacion in this.localizacionBolsines)
+            {
+                if (this.leerNumero(localizacion) == numero)
+                {
+                    return localizacion;
+                }
+            }
+            return null;
+        }
+
+        private Bolsin? buscarBolsinEnviado(int numero)
+        {
+            foreach (Bolsin bolsin in this.bolsinesEnviados)
+            {
+                if (bolsin.getNumeroBolsin() == numero)
+                {
+                    return bolsin;
+                }
+            }
+            return null;
+        }
+
+        private int leerNumero(string[] localizacion)
+        {
+            return int.Parse(localizacion[columnaNumero], CultureInfo.InvariantCulture);
+        }
+
+        private double leerLatitud(string[] localizacion)
+        {
+            return double.Parse(localizacion[columnaLatitud], CultureInfo.InvariantCulture);
+        }
+
+        private double leerLongitud(string[] localizacion)
+        {
+            return double.Parse(localizacion[columnaLongitud], CultureInfo.InvariantCulture);
+        }
+
+        private DateTime leerFechaHora(string[] localizacion)
+        {
+            return DateTime.Parse(localizacion[columnaFechaHora], CultureInfo.InvariantCulture);
         }
     }
 }

@@ -1,11 +1,12 @@
+using System.Text.Json.Nodes;
+
 namespace Bolsines.Interfaces.Dispositivos
 {
     // ---------------------------------------------------------------------
     // ADAPTEE del patrón Adapter: GPS Tracker modelo XTR-4500L.
     //
-    // Ya no simula la ubicación: la pide a la API provista por la cátedra
-    // (repositorio dsi-api-bolsines), que debe estar corriendo en
-    // http://localhost:8080.
+    // Pide la ubicación a la API provista por la cátedra (repositorio
+    // dsi-api-bolsines), que debe estar corriendo en http://localhost:8080.
     //
     // Interfaz propia del dispositivo (incompatible con la del sistema):
     //   GET /api/xtr-4500l/getBolsinLocation
@@ -26,43 +27,63 @@ namespace Bolsines.Interfaces.Dispositivos
         };
 
         // Métodos
-        // Devuelve el JSON tal cual lo entrega el dispositivo, o null si no
-        // hay ubicación para ese bolsín (401, 400, 404) o si la API no responde.
-        public string? getBolsinLocation(string apiKey, int numeroBolsin, string codigoCMOrigen)
+        // getBolsinLocation(apiKey: String, nroBolsin: int[], codCMOrigen: String): String
+        // Devuelve un JSON {"items":[...]} con la ubicación de los bolsines que
+        // el dispositivo pudo informar. Los que no (401, 400, 404 o API caída)
+        // no aparecen en "items".
+        public string getBolsinLocation(string apiKey, int[] nroBolsin, string codCMOrigen)
         {
-            string url =
-                "/api/xtr-4500l/getBolsinLocation"
-                + $"?numeroBolsin={numeroBolsin}"
-                + $"&codigoComisionMedicaOrigen={Uri.EscapeDataString(codigoCMOrigen)}";
+            JsonArray items = new JsonArray();
 
-            using var solicitud = new HttpRequestMessage(HttpMethod.Get, url);
-            solicitud.Headers.Add("X-API-Key", apiKey);
-
-            try
+            foreach (int numero in nroBolsin)
             {
-                using HttpResponseMessage respuesta = clienteHttp.Send(solicitud);
-                using var lector = new StreamReader(respuesta.Content.ReadAsStream());
-                string cuerpo = lector.ReadToEnd();
+                string url =
+                    "/api/xtr-4500l/getBolsinLocation"
+                    + $"?numeroBolsin={numero}"
+                    + $"&codigoComisionMedicaOrigen={Uri.EscapeDataString(codCMOrigen)}";
 
-                if (!respuesta.IsSuccessStatusCode)
+                using var solicitud = new HttpRequestMessage(HttpMethod.Get, url);
+                solicitud.Headers.Add("X-API-Key", apiKey);
+
+                try
+                {
+                    using HttpResponseMessage respuesta = clienteHttp.Send(solicitud);
+                    using var lector = new StreamReader(respuesta.Content.ReadAsStream());
+                    string cuerpo = lector.ReadToEnd();
+
+                    if (!respuesta.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine(
+                            $"GPS XTR-4500L: el bolsín {numero} no tiene ubicación "
+                                + $"(HTTP {(int)respuesta.StatusCode}): {cuerpo}"
+                        );
+                        continue;
+                    }
+
+                    JsonArray? recibidos = JsonNode.Parse(cuerpo)?["items"]?.AsArray();
+
+                    if (recibidos is not null)
+                    {
+                        foreach (JsonNode? item in recibidos)
+                        {
+                            if (item is not null)
+                            {
+                                items.Add(item.DeepClone());
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
                 {
                     Console.WriteLine(
-                        $"GPS XTR-4500L: el bolsín {numeroBolsin} no tiene ubicación "
-                            + $"(HTTP {(int)respuesta.StatusCode}): {cuerpo}"
+                        $"GPS XTR-4500L: no se pudo conectar con la API en {urlBaseAPI}. "
+                            + $"¿Está levantada? ({ex.Message})"
                     );
-                    return null;
+                    break;
                 }
+            }
 
-                return cuerpo;
-            }
-            catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
-            {
-                Console.WriteLine(
-                    $"GPS XTR-4500L: no se pudo conectar con la API en {urlBaseAPI}. "
-                        + $"¿Está levantada? ({ex.Message})"
-                );
-                return null;
-            }
+            return new JsonObject { ["items"] = items }.ToJsonString();
         }
     }
 }

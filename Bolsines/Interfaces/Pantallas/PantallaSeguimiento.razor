@@ -165,12 +165,8 @@
     // Datos de la pantalla
     private string txtCMUsuario = "";
     private ElementReference mapBolsinesEnviados;
-    private List<(
-        Bolsin bolsin,
-        int numero,
-        (double latitud, double longitud) ubicacion,
-        DateTime fechaHoraUbicacion
-    )> cmbBolsinesMapa = new();
+    // Localización de los bolsines del mapa (String[][]: número, latitud, longitud, fecha y hora)
+    private string[][] cmbBolsinesMapa = new string[0][];
     private List<(string codigo, string nombre)> opcionesCMDestino = new();
     private List<int> bolsinesSinUbicacion = new();
     private bool sinBolsinesEnviados = false;
@@ -249,13 +245,13 @@
     [JSInvokable]
     public void SeleccionarBolsinDesdeMapa(int numeroSeleccionado)
     {
-        var bolsinSeleccionado = this.cmbBolsinesMapa.FirstOrDefault(bolsinDeMapa =>
-            bolsinDeMapa.numero == numeroSeleccionado
+        bool estaEnElMapa = this.cmbBolsinesMapa.Any(localizacion =>
+            localizacion[0] == numeroSeleccionado.ToString(CultureInfo.InvariantCulture)
         );
 
-        if (bolsinSeleccionado.bolsin is not null && !mostrarMensajeNotificacion)
+        if (estaEnElMapa && !mostrarMensajeNotificacion)
         {
-            this.tomarSeleccionBolsin(bolsinSeleccionado);
+            this.tomarSeleccionBolsin(numeroSeleccionado);
             StateHasChanged();
         }
     }
@@ -353,14 +349,7 @@
         this.opcionesCMDestino = opciones;
     }
 
-    public void pedirSeleccionBolsin(
-            List<(
-                Bolsin bolsin,
-                int numeroBolsin,
-                (double latitud, double longitud) ubicacion,
-                DateTime fechaHoraUbicacion
-            )> localizacionBolsines
-        )
+    public void pedirSeleccionBolsin(string[][] localizacionBolsines)
     {
         this.cmbBolsinesMapa = localizacionBolsines;
         this.mapaDesactualizado = true;
@@ -379,17 +368,10 @@
         this.mensajeFiltro = $"No se encontró ningún bolsín con el número de precinto {numeroPrecinto}.";
     }
 
-    public void tomarSeleccionBolsin(
-        (
-            Bolsin bolsin,
-            int numero,
-            (double latitud, double longitud) ubicacion,
-            DateTime fechaHoraUbicacion
-        ) bolsinSeleccionado
-    )
+    public void tomarSeleccionBolsin(int numeroBolsin)
     {
         this.correoNoEnviado = null;
-        this.controladorSeguimiento.tomarSeleccionBolsin(bolsinSeleccionado);
+        this.controladorSeguimiento.tomarSeleccionBolsin(numeroBolsin);
     }
 
     public void solicitarConfirmacionEnvioMail(

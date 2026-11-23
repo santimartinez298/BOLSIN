@@ -1,5 +1,5 @@
-﻿using Bolsines.Datos_Prueba;
-using Bolsines.Entidades;
+using System.Globalization;
+using Bolsines.Datos_Prueba;
 using Bolsines.Interfaces.Sistemas_Externos;
 
 namespace Bolsines.Interfaces
@@ -20,34 +20,32 @@ namespace Bolsines.Interfaces
         }
 
         // Métodos
-        public void mostrarBolsinesEnMapa(
-            List<(
-                Bolsin bolsin,
-                int numeroBolsin,
-                (double latitud, double longitud) ubicacion,
-                DateTime fechaHoraUbicacion
-            )> localizacionBolsines
-        )
+        // Recibe la localización en el formato del sistema (String[][]):
+        // [0] número de bolsín, [1] latitud, [2] longitud, [3] fecha y hora
+        public void mostrarBolsinesEnMapa(string[][] localizacionBolsines)
         {
-            var localizacionBolsinesSinObjeto =
+            var localizacionParaServidor =
                 new List<(
                     int numeroBolsin,
                     (double latitud, double longitud) ubicacion,
                     DateTime fechaHoraUbicacion
                 )>();
 
-            foreach (var localizacion in localizacionBolsines)
+            foreach (string[] localizacion in localizacionBolsines)
             {
-                localizacionBolsinesSinObjeto.Add(
+                localizacionParaServidor.Add(
                     (
-                        localizacion.numeroBolsin,
-                        localizacion.ubicacion,
-                        localizacion.fechaHoraUbicacion
+                        int.Parse(localizacion[0], CultureInfo.InvariantCulture),
+                        (
+                            double.Parse(localizacion[1], CultureInfo.InvariantCulture),
+                            double.Parse(localizacion[2], CultureInfo.InvariantCulture)
+                        ),
+                        DateTime.Parse(localizacion[3], CultureInfo.InvariantCulture)
                     )
                 );
             }
 
-            this.servidorGoogleMaps.mostrarBolsinesEnMapa(localizacionBolsinesSinObjeto);
+            this.servidorGoogleMaps.mostrarBolsinesEnMapa(localizacionParaServidor);
         }
     }
 }

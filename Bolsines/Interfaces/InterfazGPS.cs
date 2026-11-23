@@ -1,55 +1,44 @@
-﻿using Bolsines.Datos_Prueba;
-using Bolsines.Entidades;
+using Bolsines.Datos_Prueba;
 using Bolsines.Interfaces.Patron_Adaptador;
 
 namespace Bolsines.Interfaces
 {
+    // ---------------------------------------------------------------------
+    // CLIENT del patrón Adapter: usa el GPS a través de IAdaptadorGPSTracker,
+    // sin conocer el formato propio de cada modelo de dispositivo.
+    // ---------------------------------------------------------------------
     public class InterfazGPS
     {
         // Atributos
-        private List<string> apiKeyGPSTrackers;
-        private List<(
-            Bolsin bolsin,
-            int numeroBolsin,
-            (double latitud, double longitud) ubicacion,
-            DateTime fechaHoraUbicacion
-        )> localizacionBolsinesAdaptada;
-        private List<int> numeroBolsin;
-        private string codigoCMOrigen;
-        private string codigosCMDestino;
+        private string[] apiKeyGPSTrackers;
+        private string[][] localizacionBolsinesAdaptada = new string[0][];
+        private int[] numeroBolsin = new int[0];
+        private string codigoCMOrigen = "";
 
-        // Constructor
+        // Lo usaría el modelo NavTrack QX-7A, que busca por CM destino
+        private string codigoCMDestino = "";
 
-        // public InterfazGPS(IAdaptadorGPSTracker adaptadorGPS)
-        // {
-        //     this.apiKeyGPSTrackers = DatosPrueba.getAPIKeyGPST
-        //     this.adaptadorGPS = adaptadorGPS;
-        // }
-
+        // Constructor: new()
         public InterfazGPS()
         {
             this.apiKeyGPSTrackers = DatosPrueba.getAPIKeyGPSTrackers();
         }
 
         // Métodos
-        public List<(
-            Bolsin bolsin,
-            int numeroBolsin,
-            (double latitud, double longitud) ubicacion,
-            DateTime fechaHoraUbicacion
-        )> getBolsinLocation(
-            List<(
-                Bolsin bolsin,
-                int numero
-            )> bolsinesEnviados,
-            string codigoCMOrigen
-        )
+        // getBolsinLocation(numeroBolsin: int[], codigoCMOrigen: String): String[][]
+        public string[][] getBolsinLocation(int[] numeroBolsin, string codigoCMOrigen)
         {
+            this.numeroBolsin = numeroBolsin;
+            this.codigoCMOrigen = codigoCMOrigen;
+
+            // new(apiKey, numeroBolsin, codigoCMOrigen): AdaptadorGPSTrackerXTR4500L
             IAdaptadorGPSTracker adaptadorGPSTracker = new AdaptadorGPSTrackerXTR4500L(
                 this.apiKeyGPSTrackers[0],
-                bolsinesEnviados,
-                codigoCMOrigen
+                this.numeroBolsin,
+                this.codigoCMOrigen
             );
+
+            // recibirUbicacionBolsin(): String[][]
             this.localizacionBolsinesAdaptada = adaptadorGPSTracker.recibirUbicacionBolsin();
 
             return this.localizacionBolsinesAdaptada;
