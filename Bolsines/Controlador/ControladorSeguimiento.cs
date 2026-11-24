@@ -186,12 +186,7 @@ namespace Bolsines.Controlador
 
             foreach (string[] localizacion in this.localizacionBolsines)
             {
-                Bolsin? bolsin = this.buscarBolsinEnviado(this.leerNumero(localizacion));
-
-                if (bolsin is null)
-                {
-                    continue;
-                }
+                Bolsin bolsin = this.buscarBolsinEnviado(this.leerNumero(localizacion));
 
                 bool coincidePrecinto =
                     numeroPrecinto is null || bolsin.getNumeroPrecinto() == numeroPrecinto.Value;
@@ -219,27 +214,10 @@ namespace Bolsines.Controlador
 
         public void tomarSeleccionBolsin(int numeroBolsinSeleccionado)
         {
-            Bolsin? bolsin = this.buscarBolsinEnviado(numeroBolsinSeleccionado);
-            string[]? localizacion = this.buscarLocalizacion(numeroBolsinSeleccionado);
-
-            if (bolsin is null || localizacion is null)
-            {
-                return;
-            }
-
-            this.bolsinSeleccionado = bolsin;
-            this.cmDestinoBolsinSeleccionado = bolsin.obtenerCMDestino();
-            this.codigoCMDestino = this.cmDestinoBolsinSeleccionado.getCodigo();
+            this.bolsinSeleccionado = this.buscarBolsinEnviado(numeroBolsinSeleccionado);
 
             // Paso 8: consulta si se desea enviar el correo al GCM destino
-            pantallaSeguimiento.solicitarConfirmacionEnvioMail(
-                numeroBolsinSeleccionado,
-                bolsin.getNumeroPrecinto(),
-                this.cmDestinoBolsinSeleccionado.getNombre(),
-                this.leerFechaHora(localizacion),
-                this.leerLatitud(localizacion),
-                this.leerLongitud(localizacion)
-            );
+            pantallaSeguimiento.solicitarConfirmacionEnvioMail();
         }
 
         // A5: el EB no selecciona la opción para enviar el correo electrónico
@@ -264,6 +242,9 @@ namespace Bolsines.Controlador
 
         public void obtenerCorreoGerente()
         {
+            this.cmDestinoBolsinSeleccionado = this.bolsinSeleccionado.obtenerCMDestino();
+
+            // loop [Hasta que se encuentre gerente de la CM destino]
             foreach (Empleado empleado in this.empleados)
             {
                 if (empleado.esTuCM(this.cmDestinoBolsinSeleccionado) && empleado.sosGCM())
@@ -315,16 +296,16 @@ namespace Bolsines.Controlador
             return null;
         }
 
-        private Bolsin? buscarBolsinEnviado(int numero)
+        public Bolsin buscarBolsinEnviado(int numero)
         {
             foreach (Bolsin bolsin in this.bolsinesEnviados)
             {
-                if (bolsin.getNumeroBolsin() == numero)
+                if (bolsin.esTuNumero(numero))
                 {
                     return bolsin;
                 }
             }
-            return null;
+            throw new InvalidOperationException($"El bolsín {numero} no está entre los bolsines enviados.");
         }
 
         private int leerNumero(string[] localizacion)

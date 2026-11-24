@@ -85,20 +85,18 @@
                         </div>
                     }
 
-                    @if (haySeleccion)
+                    @if (btnConfirmarEnvioMail)
                     {
                         <div class="seg-bloque">
                             <h3 class="seg-subtit">Bolsín seleccionado</h3>
                             <dl class="seg-resumen">
                                 <dt>Número</dt><dd>@selNumero</dd>
-                                <dt>Precinto</dt><dd>@selPrecinto</dd>
-                                <dt>CM destino</dt><dd>@selCMDestino</dd>
-                                <dt>Última actualización</dt><dd>@(selFecha.ToString("dd/MM/yyyy HH:mm"))</dd>
+                                <dt>Última actualización</dt><dd>@FechaSeleccionado()</dd>
                                 <dt>Coordenadas</dt><dd>@Coordenadas()</dd>
                             </dl>
                             @* Paso 8: el sistema consulta si se desea enviar el correo *@
                             <div class="seg-pregunta">
-                                ¿Desea enviar un correo electrónico al Gerente de la @(selCMDestino) para
+                                ¿Desea enviar un correo electrónico al Gerente de la comisión médica de destino para
                                 informar la ubicación del bolsín?
                                 <div class="b-fila-btn">
                                     <button class="b-btn b-btn-texto" @onclick="NoEnviarCorreo">No enviar</button>
@@ -136,12 +134,12 @@
                 <div class="b-ventana-cuerpo">
                     <h2><span class="b-tilde">✓</span>Ubicación notificada</h2>
                     <p>
-                        Se envió un correo al Gerente de la @(selCMDestino) (@(emailNotificado)) con la
+                        Se envió un correo al Gerente de la comisión médica de destino (@(emailNotificado)) con la
                         ubicación del bolsín.
                     </p>
                     <dl>
                         <dt>Número de bolsín</dt><dd>@selNumero</dd>
-                        <dt>Última actualización</dt><dd>@(selFecha.ToString("dd/MM/yyyy HH:mm"))</dd>
+                        <dt>Última actualización</dt><dd>@FechaSeleccionado()</dd>
                         <dt>Coordenadas</dt><dd>@Coordenadas()</dd>
                     </dl>
                 </div>
@@ -173,14 +171,9 @@
     private string filtroPrecinto = "";
     private string filtroCMDestino = "";
     private string? mensajeFiltro;
-    private bool haySeleccion = false;
+    private bool btnConfirmarEnvioMail = false;
     private int? correoNoEnviado;
     private int selNumero;
-    private int selPrecinto;
-    private string selCMDestino = "";
-    private DateTime selFecha;
-    private double selLatitud;
-    private double selLongitud;
     private bool mostrarMensajeNotificacion = false;
     private string emailNotificado = "";
     private ControladorSeguimiento controladorSeguimiento = default!;
@@ -214,7 +207,7 @@
 
         if (moduloJS is not null)
         {
-            await moduloJS.InvokeVoidAsync("resaltarBolsin", haySeleccion ? selNumero : 0);
+            await moduloJS.InvokeVoidAsync("resaltarBolsin", btnConfirmarEnvioMail ? selNumero : 0);
         }
     }
 
@@ -308,10 +301,30 @@
         this.controladorSeguimiento.cancelarCU();
     }
 
+    // Datos del bolsín seleccionado, tomados de la localización que muestra el mapa
+    // (String[][]: [0] número, [1] latitud, [2] longitud, [3] fecha y hora)
+    private string[] LocalizacionSeleccionada()
+    {
+        string numero = selNumero.ToString(CultureInfo.InvariantCulture);
+        return this.cmbBolsinesMapa.FirstOrDefault(localizacion => localizacion[0] == numero)
+            ?? new string[] { numero, "0", "0", "" };
+    }
+
     private string Coordenadas()
     {
-        return selLatitud.ToString("0.0000", CultureInfo.InvariantCulture) + ", "
-            + selLongitud.ToString("0.0000", CultureInfo.InvariantCulture);
+        string[] localizacion = this.LocalizacionSeleccionada();
+        double latitud = double.Parse(localizacion[1], CultureInfo.InvariantCulture);
+        double longitud = double.Parse(localizacion[2], CultureInfo.InvariantCulture);
+        return latitud.ToString("0.0000", CultureInfo.InvariantCulture) + ", "
+            + longitud.ToString("0.0000", CultureInfo.InvariantCulture);
+    }
+
+    private string FechaSeleccionado()
+    {
+        string fecha = this.LocalizacionSeleccionada()[3];
+        return fecha == ""
+            ? ""
+            : DateTime.Parse(fecha, CultureInfo.InvariantCulture).ToString("dd/MM/yyyy HH:mm");
     }
 
     // Métodos (mensajes del diagrama de secuencia)
@@ -357,7 +370,7 @@
 
     public void tomarFiltro(int? numeroPrecinto, string? codigoCMDestino)
     {
-        this.haySeleccion = false;
+        this.btnConfirmarEnvioMail = false;
         this.correoNoEnviado = null;
         this.controladorSeguimiento.tomarFiltro(numeroPrecinto, codigoCMDestino);
     }
@@ -370,33 +383,22 @@
 
     public void tomarSeleccionBolsin(int numeroBolsin)
     {
+        this.selNumero = numeroBolsin;
         this.correoNoEnviado = null;
         this.controladorSeguimiento.tomarSeleccionBolsin(numeroBolsin);
     }
 
-    public void solicitarConfirmacionEnvioMail(
-        int numeroBolsin,
-        int numeroPrecinto,
-        string nombreCMDestino,
-        DateTime fechaHoraUbicacion,
-        double latitud,
-        double longitud
-    )
+    // Habilita el botón para enviar el mail al gerente de la CM destino
+    public void solicitarConfirmacionEnvioMail()
     {
-        this.selNumero = numeroBolsin;
-        this.selPrecinto = numeroPrecinto;
-        this.selCMDestino = nombreCMDestino;
-        this.selFecha = fechaHoraUbicacion;
-        this.selLatitud = latitud;
-        this.selLongitud = longitud;
-        this.haySeleccion = true;
+        this.btnConfirmarEnvioMail = true;
     }
 
     // A5
     public void informarCorreoNoEnviado(int numeroBolsin)
     {
         this.correoNoEnviado = numeroBolsin;
-        this.haySeleccion = false;
+        this.btnConfirmarEnvioMail = false;
     }
 
     public async Task tomarConfirmacion()

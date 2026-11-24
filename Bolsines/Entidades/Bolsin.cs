@@ -54,6 +54,11 @@
             return this.numeroBolsin;
         }
 
+        public bool esTuNumero(int numero)
+        {
+            return this.numeroBolsin == numero;
+        }
+
         // Para el filtro por número de precinto (paso 6 del CU)
         public int getNumeroPrecinto()
         {
